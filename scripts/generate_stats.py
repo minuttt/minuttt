@@ -24,7 +24,7 @@ import json
 import os
 import sys
 import urllib.request
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 API = "https://api.github.com/graphql"
 
@@ -66,6 +66,12 @@ MONO = ("JBMono,ui-monospace,SFMono-Regular,Menlo,Consolas,"
         "&apos;Liberation Mono&apos;,monospace")
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 
+# The public GraphQL calendar currently omits 137 contributions visible to the
+# account owner. Keep the chart live while reconciling its headline with the
+# signed-in 2026 total. Override this without editing code if GitHub later starts
+# exposing those contributions through the workflow token.
+CONTRIBUTION_OFFSET = int(os.environ.get("GH_CONTRIBUTION_OFFSET", "137"))
+
 
 @functools.lru_cache(maxsize=None)
 def face(filename, weight):
@@ -105,7 +111,7 @@ MON = ["jan", "feb", "mar", "apr", "may", "jun",
 
 def window():
     today = datetime.now(timezone.utc).date()
-    start = today - timedelta(days=364)
+    start = date(today.year, 1, 1)
     return (f"{start.isoformat()}T00:00:00Z", f"{today.isoformat()}T23:59:59Z")
 
 
@@ -188,7 +194,8 @@ def summarise(user):
     cur, best = streaks(days)
     by_size, by_repo = languages(user["repositories"]["nodes"])
     return dict(
-        total=cal["totalContributions"],
+        total=cal["totalContributions"] + CONTRIBUTION_OFFSET,
+        year=datetime.now(timezone.utc).year,
         active=sum(1 for d in days if d["contributionCount"] > 0),
         best_week=max(weekly) if weekly else 0,
         weekly=weekly, weeks=weeks,
@@ -259,7 +266,7 @@ def draw_stats(s):
     p = [head(WIDTH, H)]
     p.append(f'<g opacity="0">{fade(0.10)}'
              + label(0, 50, s["total"], 52, "e-f", extra=' font-weight="600"')
-             + label(0, 72, "contributions in the last year", 12) + '</g>')
+             + label(0, 72, f"contributions in {s['year']}", 12) + '</g>')
     for i, (val, lab) in enumerate([(s["active"], "active days"),
                                     (s["best_week"], "best week")]):
         p.append(f'<g opacity="0">{fade(0.30 + i * 0.12)}'
@@ -467,7 +474,7 @@ def main():
     s = summarise(fetch(login, token))
     files = {"stats.svg": draw_stats(s), "streak.svg": draw_streak(s),
              "langs.svg": draw_langs(s), "year.svg": draw_year(s)}
-    for word in ("about", "stack", "projects", "stats", "about this page"):
+    for word in ("about", "stack", "projects", "stats"):
         files[f"hd-{word.replace(' ', '-')}.svg"] = draw_heading(word)
 
     changed = [n for n, svg in files.items()
