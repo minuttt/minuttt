@@ -9,9 +9,10 @@ Outputs, all sharing one visual language with ascii.svg (the portrait):
   langs.svg   top languages, by bytes and by repo count
   year.svg    the year as a character map, in the portrait's own ramp
 
-Every file uses the portrait's grey ink, a monospace face, a transparent
-background, and the same left-to-right clipPath reveal with a cursor riding
-the edge. Motion is SMIL because GitHub strips <script> from READMEs.
+Every file uses the portrait's blue-indigo-purple-pink spectrum, a monospace
+face, a transparent background, and the same left-to-right clipPath reveal
+with a cursor riding the edge. Motion is SMIL because GitHub strips <script>
+from READMEs.
 
 Env:
   GITHUB_TOKEN  required
@@ -55,11 +56,14 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
 }
 """
 
-# The portrait's ink is the data ink, so every graphic reads as one material.
-LIGHT = dict(data="#6e7681", emph="#424a53", dim="#8c959f",
-             rule="#d8dee4", surface="#ffffff")
-DARK = dict(data="#c9d1d9", emph="#f0f6fc", dim="#8b949e",
-            rule="#30363d", surface="#0d1117")
+# Apple-inspired spectrum: system blue through indigo and purple to pink. The
+# gradient carries graphical marks; semantic text stays solid for readability.
+GRADIENT_LIGHT = ("#007AFF", "#5E5CE6", "#AF52DE", "#FF375F")
+GRADIENT_DARK = ("#64D2FF", "#7D7AFF", "#BF5AF2", "#FF6482")
+LIGHT = dict(data="#686879", emph="#3f3b91", dim="#7b7b8d",
+             rule="#d9d8e8", surface="#fafaff")
+DARK = dict(data="#d0cfe0", emph="#d9d6ff", dim="#9a99aa",
+            rule="#393747", surface="#0d0c14")
 # JBMono is the inlined subset below; the rest is a fallback for the unlikely
 # case a renderer ignores the embedded face.
 MONO = ("JBMono,ui-monospace,SFMono-Regular,Menlo,Consolas,"
@@ -210,16 +214,30 @@ def style(extra="", font=None):
         return (f".d-f{{fill:{t['data']}}}.d-s{{stroke:{t['data']}}}"
                 f".e-f{{fill:{t['emph']}}}.m-f{{fill:{t['dim']}}}"
                 f".u-s{{stroke:{t['rule']}}}.r{{stroke:{t['surface']}}}")
+    def stops(colors):
+        return "".join(f".gs{i}{{stop-color:{color}}}"
+                       for i, color in enumerate(colors))
     return (f"<style>{font or font_text()}"
-            f"{block(LIGHT)}.w{{fill:{LIGHT['data']};opacity:.13}}{extra}"
+            f"{block(LIGHT)}{stops(GRADIENT_LIGHT)}"
+            f".g-f{{fill:url(#apple)}}.g-s{{stroke:url(#apple)}}"
+            f".w{{fill:url(#apple);opacity:.17}}{extra}"
             f"@media(prefers-color-scheme:dark){{{block(DARK)}"
-            f".w{{fill:{DARK['data']};opacity:.16}}}}</style>")
+            f"{stops(GRADIENT_DARK)}.w{{opacity:.22}}}}</style>")
+
+
+def gradient(w, h):
+    offsets = ("0%", "36%", "68%", "100%")
+    marks = "".join(f'<stop offset="{offset}" class="gs{i}"/>'
+                    for i, offset in enumerate(offsets))
+    return (f'<defs><linearGradient id="apple" x1="0" y1="{h}" '
+            f'x2="{w}" y2="0" gradientUnits="userSpaceOnUse">'
+            f'{marks}</linearGradient></defs>')
 
 
 def head(w, h, font=None):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
             f'viewBox="0 0 {w} {h}" fill="none" font-family="{MONO}">'
-            + style(font=font))
+            + gradient(w, h) + style(font=font))
 
 
 def fade(delay, dur=0.45):
@@ -232,7 +250,7 @@ def wipe(cid, x, y, w, h, delay, dur=REVEAL):
     clip = (f'<clipPath id="{cid}"><rect x="{x}" y="{y}" height="{h}" width="0">'
             f'<animate attributeName="width" from="0" to="{w}" '
             f'begin="{delay:.2f}s" dur="{dur}s" fill="freeze"/></rect></clipPath>')
-    cursor = (f'<rect y="{y}" width="2" height="{h}" class="d-f" opacity="0">'
+    cursor = (f'<rect y="{y}" width="2" height="{h}" class="g-f" opacity="0">'
               f'<animate attributeName="x" from="{x}" to="{x + w}" '
               f'begin="{delay:.2f}s" dur="{dur}s" fill="freeze"/>'
               f'<set attributeName="opacity" to="0.55" begin="{delay:.2f}s"/>'
@@ -247,7 +265,7 @@ def label(x, y, text, size=11, cls="m-f", anchor="start", extra=""):
             f'{extra}>{text}</text>')
 
 
-def hbar(x, y, w, h, cls="d-f", r=3.0):
+def hbar(x, y, w, h, cls="g-f", r=3.0):
     """Horizontal bar: rounded data-end on the right, square at the baseline."""
     if w <= 0.6:
         return ""
@@ -286,7 +304,7 @@ def draw_stats(s):
              + f'L{pts[-1][0]:.1f} {base:.1f}Z" class="w"/>')
     p.append(f'<path d="M{pts[0][0]:.1f} {pts[0][1]:.1f}'
              + "".join(f'L{x:.1f} {y:.1f}' for x, y in pts[1:])
-             + f'" class="d-s" stroke-width="2" stroke-linejoin="round" '
+             + f'" class="g-s" stroke-width="2" stroke-linejoin="round" '
              f'stroke-linecap="round"/>')
     p.append("</g>")
     p.append(cursor)
@@ -374,7 +392,7 @@ def draw_heading(word):
     p = [head(WIDTH, H, font=font_head())]
     p.append(label(0, 18, word, FS, "e-f", extra=' font-weight="600"'))
     p.append(f'<line x1="{text_end:.0f}" y1="12.5" x2="{WIDTH}" y2="12.5" '
-             f'class="u-s" stroke-width="1"/>')
+             f'class="g-s" stroke-width="1.25" opacity="0.75"/>')
     p.append("</svg>")
     return "".join(p)
 
@@ -406,7 +424,7 @@ def draw_year(s):
     lx = WIDTH - 6
     p.append(f'<g opacity="0">{fade(1.30)}'
              + label(lx - 78, 32, "less", 9, "m-f", "end")
-             + f'<text xml:space="preserve" x="{lx - 72}" y="32" class="d-f" '
+             + f'<text xml:space="preserve" x="{lx - 72}" y="32" class="g-f" '
              f'font-size="{FS}">{" ".join(RAMP[1:])}</text>'
              + label(lx, 32, "more", 9, "m-f", "end") + '</g>')
 
@@ -429,7 +447,7 @@ def draw_year(s):
                  f'fill="freeze"/></rect></clipPath>')
         safe = line.replace("&", "&amp;").replace("<", "&lt;")
         p.append(f'<g clip-path="url(#{cid})"><text xml:space="preserve" '
-                 f'x="{pad_l}" y="{y + FS - 0.6:.1f}" class="d-f" '
+                 f'x="{pad_l}" y="{y + FS - 0.6:.1f}" class="g-f" '
                  f'font-size="{FS}">{safe}</text></g>')
 
     for r, lab in ((1, "mon"), (3, "wed"), (5, "fri")):

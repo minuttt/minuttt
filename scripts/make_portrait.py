@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a photo into ascii.svg — a self-typing, monochrome ASCII portrait.
+"""Turn a photo into ascii.svg — a self-typing, gradient ASCII portrait.
 
 This is the generator that produced the portrait at the top of the README.
 Run it once; it is not on a schedule, unlike scripts/generate_stats.py.
@@ -45,8 +45,6 @@ CURVE = 1.7                # the darkening curve — the difference-maker
 CROP_BOTTOM = 0.0          # fraction to trim off the bottom (torso, chair)
 ROW_RATIO = 0.48           # monospace cells are about twice as tall as wide
 
-FG_LIGHT = "#6e7681"       # readable on GitHub light — the portrait's grey
-FG_DARK = "#c9d1d9"        # and its dark-mode step
 CHAR_W = 7.74              # 0.600 em at FONT_SIZE — keep these in step
 FONT_SIZE = 12.9
 LINE_H = 15
@@ -112,8 +110,17 @@ def build_svg(lines, cols=COLS):
     p = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" '
          f'height="{height}" viewBox="0 0 {width} {height}" '
          f'font-family="{FAMILY}">',
-         f'<style>.a{{fill:{FG_LIGHT}}}'
-         f'@media(prefers-color-scheme:dark){{.a{{fill:{FG_DARK}}}}}</style>']
+         f'<defs><linearGradient id="portrait-gradient" x1="0" y1="{height}" '
+         f'x2="{width}" y2="0" gradientUnits="userSpaceOnUse">'
+         f'<stop offset="0%" class="gs0"/><stop offset="36%" class="gs1"/>'
+         f'<stop offset="68%" class="gs2"/><stop offset="100%" class="gs3"/>'
+         f'</linearGradient></defs>',
+         '<style>.a{fill:url(#portrait-gradient)}'
+         '.gs0{stop-color:#007AFF}.gs1{stop-color:#5E5CE6}'
+         '.gs2{stop-color:#AF52DE}.gs3{stop-color:#FF375F}'
+         '@media(prefers-color-scheme:dark){.gs0{stop-color:#64D2FF}'
+         '.gs1{stop-color:#7D7AFF}.gs2{stop-color:#BF5AF2}'
+         '.gs3{stop-color:#FF6482}}</style>']
 
     for i, line in enumerate(lines):
         y = pad + i * LINE_H
