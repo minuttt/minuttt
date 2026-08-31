@@ -71,3 +71,5 @@ the same quiet-to-loud character ramp as the portrait: `:` `+` `#` `@`.
 
 Built from the [ASCII portrait guide](https://burly-handstand-0dc.notion.site/ASCII-Portrait-README-Guide-3a3e3f86338481f0b545ec8120bbf604)
 and the [self-generating profile guide](https://agreeable-credit-859.notion.site/A-GitHub-profile-that-generates-itself-3abedfe9a65a81e4afc9daed90cb4e7e).
+
+<!-- profile-readme -->
